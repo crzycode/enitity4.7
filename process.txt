@@ -1,0 +1,109 @@
+https://developer.okta.com/blog/2018/07/27/build-crud-app-in-aspnet-framework-webapi-and-angular
+
+remove bundleconfig file
+reamove Areas
+remove content
+remove font
+remove script
+remove views
+remove applicationsinsight.config
+
+
+
+After you have done this, go to your Global.asax file and remove the using statement:
+
+using System.Web.Optimization;
+
+And also remove the Bundles registration part, since we will not be needing these for API:
+
+BundleConfig.RegisterBundles(BundleTable.Bundles);
+
+Uninstall-Package Microsoft.ApplicationInsights.Web
+Uninstall-Package Microsoft.ApplicationInsights.WindowsServer
+Uninstall-Package Microsoft.ApplicationInsights.WindowsServer.TelemetryChannel
+Uninstall-Package Microsoft.ApplicationInsights.PerfCounterCollector
+Uninstall-Package Microsoft.ApplicationInsights.DependencyCollector
+Uninstall-Package Microsoft.ApplicationInsights.Agent.Intercept
+Uninstall-Package Microsoft.ApplicationInsights
+Uninstall-Package Microsoft.AspNet.Web.Optimization
+Uninstall-Package bootstrap
+Uninstall-Package jQuery
+Uninstall-Package WebGrease
+Uninstall-Package Antlr
+Uninstall-Package Modernizr
+
+
+Install-Package Microsoft.Owin.Host.SystemWeb -Version 4.0.0
+Install-Package Microsoft.IdentityModel.Protocols.OpenIdConnect -Version 5.2.1
+Install-Package Microsoft.IdentityModel.Tokens -Version 5.2.1
+Install-Package Microsoft.Owin.Security.Jwt -Version 4.0.0
+Install-Package EntityFramework -Version 6.2.0
+Install-Package Microsoft.AspNet.WebApi.Cors -Version 5.2.6
+Install-Package Microsoft.AspNet.Identity.Owin -Version 2.2.1
+
+data cotext 
+
+ public class ApplicationDbContext : DbContext
+    {
+        public ApplicationDbContext() :
+          base("OktaConnectionString")
+        {
+        }
+
+        public static ApplicationDbContext Create()
+        {
+            return new ApplicationDbContext();
+        }
+
+        public DbSet<SugarLevel> SugarLevels { get; set; }
+
+ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            if (ConfigurationManager.AppSettings["ConnectionString"] == null)
+            {
+                throw new Exception("Hey!");
+            }
+
+            optionsBuilder.UseSqlServer(ConnectionString);
+        }
+    }
+    }
+
+
+Enable-Migrations
+Add-Migration Initial
+Update-Database -Verbose
+
+
+enable cors
+
+Since our client application will be running on a different port than our ASP.NET server, we will need to add CORS middleware to the pipeline.
+
+We will enable CORS globally by adding a following to Register() method of our WebApiConfig class, which is located in the App_start folder.
+
+You will also need to add the using statement for CORS.
+
+using System.Web.Http.Cors;
+Then add the following to the end of the Register() method.
+
+// Enable CORS for the Angular App
+var cors = new EnableCorsAttribute("http://localhost:4200", "*", "*");
+config.EnableCors(cors);
+
+
+Set a Default Formatter for ASP.NET Web API 2
+Sadly, ASP.NET Web API 2 by default uses XML formatter. We will remove it and make sure JSON formatter is used. Add the following code at the end of Register method inside of WebApiConfig class:
+
+// Set JSON formatter as default one and remove XmlFormatter
+
+var jsonFormatter = config.Formatters.JsonFormatter;
+jsonFormatter.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+config.Formatters.Remove(config.Formatters.XmlFormatter);
+jsonFormatter.SerializerSettings.DateTimeZoneHandling = Newtonsoft.Json.DateTimeZoneHandling.Utc;
+You’ll also need to add the using statement for the JSON serializer to the file:
+
+using Newtonsoft.Json.Serialization;
+We also want to specify the port the API will be running on so that the Angular application can call it. To do so, right click on the project in the solution explorer and click properties. In the main properties window, choose Web from the left-hand menu and set the Project Url property to http://localhost:8080.
+
